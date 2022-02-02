@@ -147,188 +147,195 @@ While 1
 
 				$sElement = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, '/html/body/section/div/div/div/div/div[2]/div/span[2]')
 				$Element_Wrong = _WD_ElementAction($Session, $sElement, 'text')
-					If $Element_Wrong = 'Invalid username or password.' then
-						$Status = 'SAI_PASS'
-						ToolTip($Data_Mail, 940, 50, 'WRONG ACC '&@CRLF&' ACCOUNT: '&$i&@CRLF&' TOTAL: '&_FileCountLines($FILE_INPUT), $TIP_BALLOON)
+
+				If $Element_Wrong = 'Invalid username or password.' then
+					$Status = 'SAI_PASS'
+					ToolTip($Data_Mail, 940, 50, 'WRONG ACC '&@CRLF&' ACCOUNT: '&$i&@CRLF&' TOTAL: '&_FileCountLines($FILE_INPUT), $TIP_BALLOON)
+					$file = FileOpen($FILE_LOG, 1)
+					FileWrite($file, $line & Chr (9) & $Status & @CRLF)
+					FileClose($file)
+					Sleep(10)
+					_WD_DeleteSession($Session)
+					_WD_Shutdown()
+				Else
+					Local $guidelines = ''
+					$LinkLogin = _WD_Action($Session, 'url')
+					if $LinkLogin = 'https://connect.appen.com/qrp/core/vendors/acknowledge_guidelines' then
+
+						$guidelines = 'GUIDE_LINE'
 						$file = FileOpen($FILE_LOG, 1)
-						FileWrite($file, $line & Chr (9) & $Status & @CRLF)
+						FileWrite($file, $line &@TAB& $guidelines & @CRLF)
 						FileClose($file)
-						Sleep(10)
-						_WD_DeleteSession($Session)
-						_WD_Shutdown()
-					Else
-						Local $guidelines = ''
-						$LinkLogin = _WD_Action($Session, 'url')
-						if $LinkLogin = 'https://connect.appen.com/qrp/core/vendors/acknowledge_guidelines' then
-							$guidelines = 'GUIDE_LINE'
-							$file = FileOpen($FILE_LOG, 1)
-							FileWrite($file, $line &@TAB& $guidelines & @CRLF)
-							FileClose($file)
-							For $UnknowLine = 3 to 30
-								$lineLink = '/html/body/div[2]/div[3]/form/div[1]/div[1]/table/tbody/tr['&$UnknowLine&']/td[4]/a'
-								$sElement = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, $lineLink)
-								_WD_ElementAction($Session, $sElement, 'click')
-								Sleep(200)
-							Next
-							_WD_Attach($Session, 'Appen Guidelines Acknowledgement Required')
-							Sleep(200)
-							For $UnknowButton = 0 to 30
-								$ButtonLink = '//input[@id="acknowledge-guideline-'&$UnknowButton&'"]'
-								$sElement = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, $ButtonLink)
-								_WD_ElementAction($Session, $sElement, 'click')
-								Sleep(100)
-							Next
-							Sleep(100)
-							$sElement = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, '//input[@name="acknowledge"]')
+
+						For $UnknowLine = 3 to 30
+							$lineLink = '/html/body/div[2]/div[3]/form/div[1]/div[1]/table/tbody/tr['&$UnknowLine&']/td[4]/a'
+							$sElement = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, $lineLink)
 							_WD_ElementAction($Session, $sElement, 'click')
-						EndIf
+							Sleep(200)
+						Next
 
-						_WD_Navigate($Session, 'https://connect.appen.com/qrp/core/vendors/payoneer_registration');'https://connect.appen.com/qrp/core/vendors/invoices')
-						$sElement = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, '/html/body/h2')
-						$Element_Deny = _WD_ElementAction($Session, $sElement, 'text')
-						;_WD_Timeouts($Session, '{"pageLoad":50000}')
-						$sElement = _WD_GetSource($Session)
-						Local $USER_ID
-						Local $USER_ID_FIND = StringRegExp($sElement, "USER_ID = '(.*)'",1)
-						If Not @error then $USER_ID = $USER_ID_FIND[0]
-						ConsoleWrite('$USER_ID: ' & $USER_ID & @CRLF)
-						ConsoleWrite($line&@CRLF)
+						_WD_Attach($Session, 'Appen Guidelines Acknowledgement Required')
+						Sleep(200)
 
-						$Json_profile = 'https://connect.appen.com/qrp/api/v2/services/user-service/users/'&$USER_ID&'/profile'
-						_WD_Navigate($Session, $Json_profile)
-						$sElement = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, '/html/body/pre')
-						$g__Text_profile = _WD_ElementAction($Session, $sElement, 'text')
-						$oJson_profile = _HttpRequest_ParseJSON($g__Text_profile)
-						Local $userStatus = $oJson_profile.get('userStatus')
+						For $UnknowButton = 0 to 30
+							$ButtonLink = '//input[@id="acknowledge-guideline-'&$UnknowButton&'"]'
+							$sElement = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, $ButtonLink)
+							_WD_ElementAction($Session, $sElement, 'click')
+							Sleep(100)
+						Next
 
-						if $Element_Deny = 'Access Denied' then $userStatus = 'TERMINATED'
-
-						$file = FileOpen($FILE_TEMP, 1)
-						FileWrite($file, $userStatus&@TAB&$line&@TAB)
-						FileClose($file)
-
-						If $userStatus = '' or $userStatus = Null then $i = $i-1
-
-						$JsonLink = 'https://connect.appen.com/qrp/api/v2/services/project-service/vendorProjectList/'&$USER_ID&'/all'
-						_WD_Navigate($Session, $JsonLink)
-						$sElement = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, '/html/body/pre')
-						$g__Text = _WD_ElementAction($Session, $sElement, 'text')
-						$oJson = _HttpRequest_ParseJSON($g__Text)
-
-						Local $projectCount = $oJson.projects.length()
-						ConsoleWrite('PROJECT COUNT : ' & $projectCount & @CRLF)
-
-						for $ii = 0 to $projectCount-1
-							Local $JobName, $actions, $workType, $status, $Description, $longName
-							$JobName = $oJson.get('projects['&$ii&'].projectAlias')
-							$actions = $oJson.get('projects['&$ii&'].actions[0]')
-							$workType = $oJson.get('projects['&$ii&'].workType')
-
-							If $actions = 'APPLY' then;'APPLIED_OPTIONS;WORK_THIS;APPLY
-								Local $Junk = 'Gravel Amur Maitengwe Shoshone Dorian Dorian - AIR Pecwan Pecwan - AIR Rattle Texcoco Dutch v2 Inari-C Pecwan - EQ Ivishak Anahulu Nida FY21 Simpson-CS Simpson-PF Sphinx-FR Ivindo-LC AuSable Sepulga Banda Bosque Gregorio Nepean Anahulu-LC Selway Vistula FY21 Chariton Tilton Korean Tokenisation Oct 2020 Longfellow II Cloquallum Butler Pic-A-Boo Cedar Yost Nida FY22 Vistula FY22 Truckee Milpitas Phillips Auditors Amur -  Group 1 Amur -  Group 2 Pocomoke'
-
-								If $JobName = 'Arrow Pic-A-Boo' then $JobName = 'Pic-A-Boo'
-								If $JobName = 'Arrow Butler' then $JobName = 'Butler'
-
-								If StringInStr('LINGUISTICS SEARCH_EVALUATION SOCIAL_MEDIA WEB_RESEARCH DATA_COLLECTION TRANSCRIPTION', $workType) and Not StringInStr($Junk, $JobName) then;DATA_COLLECTION;TRANSCRIPTION
-									$file = FileOpen($FILE_TEMP, 1)
-									FileWrite($file, $JobName & @TAB)
-									FileClose($file)
-								EndIf;==>If StringInStr('LINGUISTICS SEARCH_EVALUATION
-							EndIf;==>$actions = 'APPLY'
-						Next;==>for $ii = 0
-
-
-						_WD_Navigate($Session, 'https://connect.appen.com/qrp/core/vendors/workflows')
 						Sleep(100)
-						$aElements = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, '/html/body/div[2]/div[3]/table/tbody/tr/td/div', "", True)
-						$iLines = UBound($aElements)
-						Local $aTable[$iLines][4]
-						For $iii = 0 To UBound($aElements)-1
-							$check_name_or_status = _WD_ElementAction($Session, $aElements[$iii], "Text")
-							if (StringInStr($check_name_or_status, 'Qualification')) <> 0 then
-								$aTable[$iii][0] = $check_name_or_status
-							ElseIf (StringInStr($check_name_or_status, 'View')) <> 0 then
-								$aTable[$iii-1][1] = $check_name_or_status
-							EndIf
-						Next;==>For $iii = 0 To UBound($aElements)-1
-						
-						_Array2DDeleteEmptyRows($aTable)
-						$ViewTask = '//div[@class="actions right"]//a'
-						$sElement_ViewTask = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, $ViewTask, '', True, False)
-						
-						for $count = 0 to ubound($sElement_ViewTask)-1
-							$link_view_task = _WD_ElementAction($Session, $sElement_ViewTask[$count], 'attribute', 'href')
-							$aTable[$count][2] = 'https://connect.appen.com'&$link_view_task
-						Next;==>for $count = 0 to ubound($sElement_ViewTask)-1
-						
-						$Content = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, '/html/body/div[2]/div[3]/table/tbody/tr/td', "", True)
-						For $ii = 0 To UBound($Content)-1
-							$get_content = _WD_ElementAction($Session, $Content[$ii], "Text")
-							$get_content = StringStripWS($get_content, 8)
-							$get_content = StringReplace($get_content, 'ViewTask', "")
-							$get_content = StringReplace($get_content, 'Thisprocessiscurrentlyinprogress,butthereisnothingforyoutodoatthistime.Ifyouwishtoviewthelateststatusofthisprocess,pleaseclick"ViewStatus".', "")
-							$get_content = StringReplace($get_content, 'Thisprocessiscurrentlyinprogressandwearewaitingonsomeinformationfromyoubeforewecancontinue.Pleasecheckyouremailforadditionalinstructions.Pleasecompletethefollowingtask:', "")
-							$get_content = StringReplace($get_content, 'Thisprocessiscurrentlyinprogress,butthereisnothingforyoutodoatthistime.', "")
-							$get_content = StringRegExpReplace($get_content, '(.*)Qualification', "")
-							$get_content = StringReplace($get_content, 'ViewStatus', "")
-							$aTable[$ii][3] = $get_content
-						Next;==>For $ii = 0 To UBound($Content)-1
-						
-						Local $aTable_Temp[$iLines]
-						
-						For $copy = 0 to UBound($aTable)-1
-							$aTable_Temp[$copy] = $aTable[$copy][2]
-						Next;==>For $copy = 0 to UBound($aTable)-1
+						$sElement = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, '//input[@name="acknowledge"]')
+						_WD_ElementAction($Session, $sElement, 'click')
 
-						For $empty_name = 0 to UBound($aTable)-1
-							if ($aTable[$empty_name][1] = '') Then
-								_ArrayInsert($aTable_Temp, $empty_name, "NOTHING HERE")
-							Else
-							EndIf
-						Next;==>For $empty_name = 0 to UBound($aTable)-1
-						
-						_Array1DDeleteEmptyRows($aTable_Temp)
+					EndIf;if $LinkLogin = 'https://connect.appen.com/qrp/core/vendors/acknowledge_guidelines' then
 
-						For $move_array_remove_ori = 0 to UBound($aTable)-1
-							$aTable[$move_array_remove_ori][2] = ''
-						Next;==>For $move_array_remove_ori = 0 to UBound($aTable)-1
+					_WD_Navigate($Session, 'https://connect.appen.com/qrp/core/vendors/payoneer_registration');'https://connect.appen.com/qrp/core/vendors/invoices')
+					$sElement = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, '/html/body/h2')
+					$Element_Deny = _WD_ElementAction($Session, $sElement, 'text')
+					;_WD_Timeouts($Session, '{"pageLoad":50000}')
+					$sElement = _WD_GetSource($Session)
+					Local $USER_ID
+					Local $USER_ID_FIND = StringRegExp($sElement, "USER_ID = '(.*)'",1)
+					If Not @error then $USER_ID = $USER_ID_FIND[0]
+					ConsoleWrite('$USER_ID: ' & $USER_ID & @CRLF)
+					ConsoleWrite($line&@CRLF)
 
-						For $move_array = 0 to UBound($aTable)-1
-							$aTable[$move_array][2] = $aTable_Temp[$move_array]
-						Next;==>For $move_array = 0 to UBound($aTable)-1
-						
-						;_ArrayDisplay($aTable)
-						For $check_task = 0 to UBound($aTable)-1
-							If $aTable[$check_task][1] = 'View Task' and $aTable[$check_task][3] = 'Completescreeningquiz' Then
-								_WD_Navigate($Session, $aTable[$check_task][2])
-								$sElement = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, '/html/body/div[2]/div[3]/form/div[3]/p')
-								$has_question = _WD_ElementAction($Session, $sElement, 'Text')
-								if (StringInStr($has_question, 'Question')) <> 0 Then
-									$file = FileOpen($FILE_LOG, 1)
-									FileWrite($file, 'TASK_VIEW'&@TAB&$line&@TAB&$aTable[$check_task][0] & @TAB & $aTable[$check_task][2] & @TAB& 'Found ' & $has_question & @CRLF)
-									FileClose($file)
-								EndIf;==>if (StringInStr($has_question, 'Question')) <> 0 Then
-								
-							ElseIf $aTable[$check_task][1] = 'View Task' and (($aTable[$check_task][3] <> 'Completescreeningquiz') or ($aTable[$check_task][3] <> '') or ($aTable[$check_task][3] <> null )) Then
-								$file = FileOpen($FILE_LOG, 1)
-								FileWrite($file, 'TASK_VIEW'&@TAB&$line&@TAB&$aTable[$check_task][0] & @TAB & $aTable[$check_task][2] & @TAB& $aTable[$check_task][3] & @CRLF)
+					$Json_profile = 'https://connect.appen.com/qrp/api/v2/services/user-service/users/'&$USER_ID&'/profile'
+					_WD_Navigate($Session, $Json_profile)
+					$sElement = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, '/html/body/pre')
+					$g__Text_profile = _WD_ElementAction($Session, $sElement, 'text')
+					$oJson_profile = _HttpRequest_ParseJSON($g__Text_profile)
+					Local $userStatus = $oJson_profile.get('userStatus')
+
+					if $Element_Deny = 'Access Denied' then $userStatus = 'TERMINATED'
+
+					$file = FileOpen($FILE_TEMP, 1)
+					FileWrite($file, $userStatus&@TAB&$line&@TAB)
+					FileClose($file)
+
+					If $userStatus = '' or $userStatus = Null then $i = $i-1
+
+					$JsonLink = 'https://connect.appen.com/qrp/api/v2/services/project-service/vendorProjectList/'&$USER_ID&'/all'
+					_WD_Navigate($Session, $JsonLink)
+					$sElement = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, '/html/body/pre')
+					$g__Text = _WD_ElementAction($Session, $sElement, 'text')
+					$oJson = _HttpRequest_ParseJSON($g__Text)
+
+					Local $projectCount = $oJson.projects.length()
+					ConsoleWrite('PROJECT COUNT : ' & $projectCount & @CRLF)
+
+					for $ii = 0 to $projectCount-1
+						Local $JobName, $actions, $workType, $status, $Description, $longName
+						$JobName = $oJson.get('projects['&$ii&'].projectAlias')
+						$actions = $oJson.get('projects['&$ii&'].actions[0]')
+						$workType = $oJson.get('projects['&$ii&'].workType')
+
+						If $actions = 'APPLY' then;'APPLIED_OPTIONS;WORK_THIS;APPLY
+							Local $Junk = 'Gravel Amur Maitengwe Shoshone Dorian Dorian - AIR Pecwan Pecwan - AIR Rattle Texcoco Dutch v2 Inari-C Pecwan - EQ Ivishak Anahulu Nida FY21 Simpson-CS Simpson-PF Sphinx-FR Ivindo-LC AuSable Sepulga Banda Bosque Gregorio Nepean Anahulu-LC Selway Vistula FY21 Chariton Tilton Korean Tokenisation Oct 2020 Longfellow II Cloquallum Butler Pic-A-Boo Cedar Yost Nida FY22 Vistula FY22 Truckee Milpitas Phillips Auditors Amur -  Group 1 Amur -  Group 2 Pocomoke'
+
+							If $JobName = 'Arrow Pic-A-Boo' then $JobName = 'Pic-A-Boo'
+							If $JobName = 'Arrow Butler' then $JobName = 'Butler'
+
+							If StringInStr('LINGUISTICS SEARCH_EVALUATION SOCIAL_MEDIA WEB_RESEARCH DATA_COLLECTION TRANSCRIPTION', $workType) and Not StringInStr($Junk, $JobName) then;DATA_COLLECTION;TRANSCRIPTION
+								$file = FileOpen($FILE_TEMP, 1)
+								FileWrite($file, $JobName & @TAB)
 								FileClose($file)
+							EndIf;==>If StringInStr('LINGUISTICS SEARCH_EVALUATION
+						EndIf;==>$actions = 'APPLY'
+					Next;==>for $ii = 0
 
-							EndIf;==>If $aTable[$check_task][1] = 'View Task' and $aTable[$check_task][3] = 'Completescreeningquiz' Then
-						Next;==>For $check_task = 0 to UBound($aTable)-1
 
-						$file = FileOpen($FILE_TEMP, 1)
-						FileWrite($file, @CRLF)
-						FileClose($file)
-						_WD_DeleteSession($Session)
-						_WD_Shutdown()
-						ConsoleWrite('=============================Shutdown=======================' & @CRLF)
-						DelTemp($sFilePathTemp)
-						Sleep(100)
-						ToolTip($Data_Mail, 940, 50, 'APPLY DONE', $TIP_BALLOON)
-					EndIf;==>If $Element_Wrong = 'Invalid username or password.'
-				EndIf;==>$sElement then
+					_WD_Navigate($Session, 'https://connect.appen.com/qrp/core/vendors/workflows')
+					Sleep(100)
+					$aElements = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, '/html/body/div[2]/div[3]/table/tbody/tr/td/div', "", True)
+					$iLines = UBound($aElements)
+					Local $aTable[$iLines][4]
+					For $iii = 0 To UBound($aElements)-1
+						$check_name_or_status = _WD_ElementAction($Session, $aElements[$iii], "Text")
+						if (StringInStr($check_name_or_status, 'Qualification')) <> 0 then
+							$aTable[$iii][0] = $check_name_or_status
+						ElseIf (StringInStr($check_name_or_status, 'View')) <> 0 then
+							$aTable[$iii-1][1] = $check_name_or_status
+						EndIf
+					Next;==>For $iii = 0 To UBound($aElements)-1
+						
+					_Array2DDeleteEmptyRows($aTable)
+					$ViewTask = '//div[@class="actions right"]//a'
+					$sElement_ViewTask = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, $ViewTask, '', True, False)
+						
+					for $count = 0 to ubound($sElement_ViewTask)-1
+						$link_view_task = _WD_ElementAction($Session, $sElement_ViewTask[$count], 'attribute', 'href')
+						$aTable[$count][2] = 'https://connect.appen.com'&$link_view_task
+					Next;==>for $count = 0 to ubound($sElement_ViewTask)-1
+						
+					$Content = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, '/html/body/div[2]/div[3]/table/tbody/tr/td', "", True)
+					For $ii = 0 To UBound($Content)-1
+						$get_content = _WD_ElementAction($Session, $Content[$ii], "Text")
+						$get_content = StringStripWS($get_content, 8)
+						$get_content = StringReplace($get_content, 'ViewTask', "")
+						$get_content = StringReplace($get_content, 'Thisprocessiscurrentlyinprogress,butthereisnothingforyoutodoatthistime.Ifyouwishtoviewthelateststatusofthisprocess,pleaseclick"ViewStatus".', "")
+						$get_content = StringReplace($get_content, 'Thisprocessiscurrentlyinprogressandwearewaitingonsomeinformationfromyoubeforewecancontinue.Pleasecheckyouremailforadditionalinstructions.Pleasecompletethefollowingtask:', "")
+						$get_content = StringReplace($get_content, 'Thisprocessiscurrentlyinprogress,butthereisnothingforyoutodoatthistime.', "")
+						$get_content = StringRegExpReplace($get_content, '(.*)Qualification', "")
+						$get_content = StringReplace($get_content, 'ViewStatus', "")
+						$aTable[$ii][3] = $get_content
+					Next;==>For $ii = 0 To UBound($Content)-1
+						
+					Local $aTable_Temp[$iLines]
+						
+					For $copy = 0 to UBound($aTable)-1
+						$aTable_Temp[$copy] = $aTable[$copy][2]
+					Next;==>For $copy = 0 to UBound($aTable)-1
+
+					For $empty_name = 0 to UBound($aTable)-1
+						if ($aTable[$empty_name][1] = '') Then
+							_ArrayInsert($aTable_Temp, $empty_name, "NOTHING HERE")
+						Else
+						EndIf
+					Next;==>For $empty_name = 0 to UBound($aTable)-1
+						
+					_Array1DDeleteEmptyRows($aTable_Temp)
+
+					For $move_array_remove_ori = 0 to UBound($aTable)-1
+						$aTable[$move_array_remove_ori][2] = ''
+					Next;==>For $move_array_remove_ori = 0 to UBound($aTable)-1
+
+					For $move_array = 0 to UBound($aTable)-1
+						$aTable[$move_array][2] = $aTable_Temp[$move_array]
+					Next;==>For $move_array = 0 to UBound($aTable)-1
+						
+					;_ArrayDisplay($aTable)
+					For $check_task = 0 to UBound($aTable)-1
+						If $aTable[$check_task][1] = 'View Task' and $aTable[$check_task][3] = 'Completescreeningquiz' Then
+							_WD_Navigate($Session, $aTable[$check_task][2])
+							$sElement = _WD_FindElement($Session, $_WD_LOCATOR_ByXPath, '/html/body/div[2]/div[3]/form/div[3]/p')
+							$has_question = _WD_ElementAction($Session, $sElement, 'Text')
+							if (StringInStr($has_question, 'Question')) <> 0 Then
+								$file = FileOpen($FILE_LOG, 1)
+								FileWrite($file, 'TASK_VIEW'&@TAB&$line&@TAB&$aTable[$check_task][0] & @TAB & $aTable[$check_task][2] & @TAB& 'Found ' & $has_question & @CRLF)
+								FileClose($file)
+							EndIf;==>if (StringInStr($has_question, 'Question')) <> 0 Then
+								
+						ElseIf $aTable[$check_task][1] = 'View Task' and (($aTable[$check_task][3] <> 'Completescreeningquiz') or ($aTable[$check_task][3] <> '') or ($aTable[$check_task][3] <> null )) Then
+							$file = FileOpen($FILE_LOG, 1)
+							FileWrite($file, 'TASK_VIEW'&@TAB&$line&@TAB&$aTable[$check_task][0] & @TAB & $aTable[$check_task][2] & @TAB& $aTable[$check_task][3] & @CRLF)
+							FileClose($file)
+
+						EndIf;==>If $aTable[$check_task][1] = 'View Task' and $aTable[$check_task][3] = 'Completescreeningquiz' Then
+					Next;==>For $check_task = 0 to UBound($aTable)-1
+
+					$file = FileOpen($FILE_TEMP, 1)
+					FileWrite($file, @CRLF)
+					FileClose($file)
+					_WD_DeleteSession($Session)
+					_WD_Shutdown()
+					ConsoleWrite('=============================Shutdown=======================' & @CRLF)
+					DelTemp($sFilePathTemp)
+					Sleep(100)
+					ToolTip($Data_Mail, 940, 50, 'APPLY DONE', $TIP_BALLOON)
+				EndIf;==>If $Element_Wrong = 'Invalid username or password.'
+			EndIf;==>If $sElement then
 		Next;==>For $i = 1 to _FileCountLines($FILE_INPUT)
 	Case $idButton
 		_WD_DeleteSession($Session)
