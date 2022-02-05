@@ -15,6 +15,17 @@
 #include <String.au3>
 #include "LIB\_HttpRequest.au3"
 #include <Constants.au3>
+
+Local $exclude_job_url = 'https://raw.githubusercontent.com/IoT-VN/connect/main/exclude_job_for_filter.txt'
+$get_exclude_job = _HttpRequest(2, $exclude_job_url)
+If ($get_exclude_job='') or ($get_exclude_job=Null) Then
+	MsgBox(0,0,'Can not connect to server')
+	Exit
+Else
+	Local $exclude_job = Stringsplit($get_exclude_job, '|', 2)
+	_ArraySort($exclude_job, 0, 0)
+EndIf
+
 Const $sFilePathTemp = @TempDir;'C:\Users\Administrator\AppData\Local\Temp\2'
 
 Func DelTemp($sFilePath)
@@ -232,16 +243,16 @@ While 1
 						$workType = $oJson.get('projects['&$ii&'].workType')
 
 						If $actions = 'APPLY' then;'APPLIED_OPTIONS;WORK_THIS;APPLY
-							Local $Junk = 'Gravel Amur Maitengwe Shoshone Dorian Dorian - AIR Pecwan Pecwan - AIR Rattle Texcoco Dutch v2 Inari-C Pecwan - EQ Ivishak Anahulu Nida FY21 Simpson-CS Simpson-PF Sphinx-FR Ivindo-LC AuSable Sepulga Banda Bosque Gregorio Nepean Anahulu-LC Selway Vistula FY21 Chariton Tilton Korean Tokenisation Oct 2020 Longfellow II Cloquallum Butler Pic-A-Boo Cedar Yost Nida FY22 Vistula FY22 Truckee Milpitas Phillips Auditors Amur -  Group 1 Amur -  Group 2 Pocomoke'
+							Local $iKeyIndex = _ArrayBinarySearch($exclude_job, $JobName, 0)
+							If Not @error Then
+							Else
+								If StringInStr('LINGUISTICS SEARCH_EVALUATION SOCIAL_MEDIA WEB_RESEARCH DATA_COLLECTION TRANSCRIPTION', $workType) then;DATA_COLLECTION;TRANSCRIPTION
+									$file = FileOpen($FILE_TEMP, 1)
+									FileWrite($file, $JobName & @TAB)
+									FileClose($file)
+								EndIf
 
-							If $JobName = 'Arrow Pic-A-Boo' then $JobName = 'Pic-A-Boo'
-							If $JobName = 'Arrow Butler' then $JobName = 'Butler'
-
-							If StringInStr('LINGUISTICS SEARCH_EVALUATION SOCIAL_MEDIA WEB_RESEARCH DATA_COLLECTION TRANSCRIPTION', $workType) and Not StringInStr($Junk, $JobName) then;DATA_COLLECTION;TRANSCRIPTION
-								$file = FileOpen($FILE_TEMP, 1)
-								FileWrite($file, $JobName & @TAB)
-								FileClose($file)
-							EndIf;==>If StringInStr('LINGUISTICS SEARCH_EVALUATION
+							EndIf
 						EndIf;==>$actions = 'APPLY'
 					Next;==>for $ii = 0
 
