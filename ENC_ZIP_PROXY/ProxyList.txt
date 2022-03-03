@@ -7,7 +7,7 @@ proxyES-Spain
 proxyFI-Finland
 proxyFR-France
 proxyIT-Italia
-proxyJT-Japan
+proxyJP-Japan
 proxyKR-Korea
 proxyNL-NetherLands
 proxySE-Sweden
