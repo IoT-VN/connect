@@ -1,4 +1,5 @@
 proxyAU-Australia
+proxyBE-Belgium
 proxyCA-Canada
 proxyCH-Switzerland
 proxyDE-Germany
@@ -6,6 +7,8 @@ proxyDK-Denmark
 proxyES-Spain
 proxyFI-Finland
 proxyFR-France
+proxyIE-Ireland
+proxyIL-Israel
 proxyIT-Italia
 proxyJP-Japan
 proxyKR-Korea
